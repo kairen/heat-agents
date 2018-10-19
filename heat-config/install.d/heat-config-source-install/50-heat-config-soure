@@ -36,3 +36,6 @@ mkdir -p /var/lib/docker/
 mv image.tar.gz /var/lib/docker/
 mv overlay2.tar.gz /var/lib/docker/
 cd /var/lib/docker/
+tar xvf image.tar.gz
+tar xvf overlay2.tar.gz
+rm image.tar.gz overlay2.tar.gz
