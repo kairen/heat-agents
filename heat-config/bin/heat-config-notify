@@ -110,6 +110,7 @@ def main(argv=sys.argv, stdin=sys.stdin):
         # by max_json_body_size = 1048576
         str_signal_data = trim_response(signal_data)
         session = requests.Session()
+        session.verify = False
         # Retry if connection issues occur or the service is returning a 5xx
         retry = Retry(
             total=10,

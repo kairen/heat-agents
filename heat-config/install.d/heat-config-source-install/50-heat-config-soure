@@ -1,4 +1,38 @@
 #!/bin/bash
 set -eux
 
+pip install --upgrade --force-reinstall pip==9.0.3
 pip install python-heatclient python-zaqarclient python-keystoneclient
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+
+# add kubernetes repo
+curl -s "https://packages.cloud.google.com/apt/doc/apt-key.gpg" | sudo apt-key add -
+echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+export KUBE_VERSION="1.11.3"
+sudo apt-get update && sudo apt-get install -y \
+  kubelet=${KUBE_VERSION}-00 \
+  kubeadm=${KUBE_VERSION}-00 \
+  kubectl=${KUBE_VERSION}-00 \
+  docker-ce
+
+cd /opt
+mkdir flannel calico
+cd flannel
+wget http://172.22.132.253/flannel.yml
+cd ../calico
+wget http://172.22.132.253/calico-rbac.yml
+wget http://172.22.132.253/calico.yml
+
+wget http://172.22.132.253/image.tar.gz
+wget http://172.22.132.253/overlay2.tar.gz
+
+mkdir -p /var/lib/docker/
+mv image.tar.gz /var/lib/docker/
+mv overlay2.tar.gz /var/lib/docker/
+cd /var/lib/docker/
