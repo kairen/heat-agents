@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eux
 
+export KUBE_VERSION=${KUBE_VERSION:-"1.13.5"}
+export FILE_URL=${FILE_URL:-"http://127.0.0.1"}
+export ENABLE_GPU=${ENABLE_GPU:-"no"}
+
 pip install --upgrade --force-reinstall pip==9.0.3
 pip install python-heatclient python-zaqarclient python-keystoneclient
 
@@ -14,23 +18,45 @@ sudo add-apt-repository \
 curl -s "https://packages.cloud.google.com/apt/doc/apt-key.gpg" | sudo apt-key add -
 echo "deb http://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-export KUBE_VERSION="1.11.3"
+# add nvidia driver and nvidia docker repo
+if [ "$ENABLE_GPU" == "yes" ]; then
+  # nvidia driver
+  wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_9.1.85-1_amd64.deb
+  sudo dpkg -i cuda-repo-ubuntu1604_9.1.85-1_amd64.deb
+  sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub
+  sudo rm cuda-repo-ubuntu1604_9.1.85-1_amd64.deb
+
+  # nvidia docker
+  curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+  curl -s -L https://nvidia.github.io/nvidia-docker/ubuntu16.04/amd64/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+fi
+
 sudo apt-get update && sudo apt-get install -y \
   kubelet=${KUBE_VERSION}-00 \
   kubeadm=${KUBE_VERSION}-00 \
   kubectl=${KUBE_VERSION}-00 \
-  docker-ce
+  docker-ce=5:18.09.4~3-0~ubuntu-xenial
 
+if [ "$ENABLE_GPU" == "yes" ]; then
+  sudo apt-get purge -y nvidia*  
+  sudo apt-get autoremove -y
+  sudo rm -rf /usr/local/cuda*
+  sudo apt-get install -y linux-headers-$(uname -r)
+  sudo apt-get -o Dpkg::Options::="--force-overwrite" install -y cuda-10-0 cuda-drivers
+  sudo apt-get install -y nvidia-docker2=2.0.3+docker18.09.4-1
+fi
+
+# clean packages
+sudo apt-get clean
+
+# download the dependency files
 cd /opt
-mkdir flannel calico
-cd flannel
-wget http://172.22.132.253/flannel.yml
-cd ../calico
-wget http://172.22.132.253/calico-rbac.yml
-wget http://172.22.132.253/calico.yml
+wget ${FILE_URL}/flannel.yml
+wget ${FILE_URL}/nvidia-device-plugin.yml
 
-wget http://172.22.132.253/image.tar.gz
-wget http://172.22.132.253/overlay2.tar.gz
+# create offline images
+wget ${FILE_URL}/image.tar.gz
+wget ${FILE_URL}/overlay2.tar.gz
 
 mkdir -p /var/lib/docker/
 mv image.tar.gz /var/lib/docker/
