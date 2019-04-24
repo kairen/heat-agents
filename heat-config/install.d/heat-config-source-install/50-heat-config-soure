@@ -44,6 +44,17 @@ if [ "$ENABLE_GPU" == "yes" ]; then
   sudo apt-get install -y linux-headers-$(uname -r)
   sudo apt-get -o Dpkg::Options::="--force-overwrite" install -y cuda-10-0 cuda-drivers
   sudo apt-get install -y nvidia-docker2=2.0.3+docker18.09.4-1
+  cat <<EOF > /etc/docker/daemon.json
+{
+    "default-runtime": "nvidia",
+    "runtimes": {
+        "nvidia": {
+            "path": "/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}
+EOF
 fi
 
 # clean packages
